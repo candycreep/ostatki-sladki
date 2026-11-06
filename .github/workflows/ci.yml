@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  requirements:
+    name: Requirements are traceable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Every matrix row has a requirement ID
+        run: |
+          set -euo pipefail
+          found=$(grep -nE '^\|' docs/traceability.md \
+            | grep -vE '^[0-9]+:\|[-:| ]+$' \
+            | grep -vE '^[0-9]+:\| (ID|Критерий|Шаг пути) ' \
+            | grep -vE '(FR|NFR|BR|C)-[0-9]+' || true)
+          if [ -n "$found" ]; then
+            echo "Строки матрицы без идентификатора требования:"
+            echo "$found"
+            exit 1
+          fi
+
+      - name: Every quality requirement has a number
+        run: |
+          set -euo pipefail
+          found=$(awk '
+            /^### `NFR/ { if (h != "" && !n) print h; h = $0; n = 0; next }
+            /^#/        { if (h != "" && !n) print h; h = ""; next }
+            h != "" && /[0-9]+ *(мс|с|%|мин|команд)/ { n = 1 }
+            END         { if (h != "" && !n) print h }
+          ' docs/requirements.md)
+          if [ -n "$found" ]; then
+            echo "Требования к качеству без величины с единицей:"
+            echo "$found"
+            exit 1
+          fi
