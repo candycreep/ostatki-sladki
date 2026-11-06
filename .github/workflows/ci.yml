@@ -77,3 +77,26 @@ jobs:
               || { echo "$(basename "$file") отсутствует в указателе"; failed=1; }
           done
           exit $failed
+
+  diagrams:
+    name: Diagrams render
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Render every diagram
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+          echo '{"args": ["--no-sandbox"]}' > /tmp/puppeteer.json
+          failed=0
+          for file in docs/**/*.mmd; do
+            echo "== $file"
+            npx --yes @mermaid-js/mermaid-cli@11.4.0 -p /tmp/puppeteer.json \
+              -i "$file" -o "/tmp/$(basename "$file").svg" \
+              || { echo "НЕ ОТРИСОВЫВАЕТСЯ: $file"; failed=1; }
+          done
+          exit $failed

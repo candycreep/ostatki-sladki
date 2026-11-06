@@ -1,0 +1,45 @@
+%% Соглашение об оформлении C4 — в docs/architecture/README.md
+%% actor — действующее лицо; sys — наша система или её часть; store — хранилище; ext — внешняя система
+%% Элемент, которого ещё нет, помечается в подписи номером работы: <b>ЛР 6А</b>
+flowchart TB
+    buyer["Покупатель<br/><i>человек</i>"]
+    admin["Администратор пекарни<br/><i>человек</i>"]
+    seller["Продавец<br/><i>человек</i>"]
+    operator["Оператор платформы<br/><i>человек: команда</i>"]
+
+    subgraph boundary["Остатки сладки"]
+        web["Браузерное приложение<br/><i>контейнер: TypeScript 5, Vue 3.5, Vite 6</i><br/>Поиск рядом, бронь, кабинет пекарни<br/><b>ЛР 8</b>"]
+        api["Сервис API<br/><i>контейнер: Python 3.13, FastAPI</i><br/>Все контексты: правила брони и выдачи, пекарни, вход<br/><b>ЛР 3А</b>"]
+        db[("База данных<br/><i>контейнер: PostgreSQL 17</i><br/>Пекарни, предложения, брони, учётные записи<br/><b>ЛР 4А</b>")]
+        broker[("Брокер сообщений<br/><i>контейнер: RabbitMQ 4</i><br/>События предложений и броней<br/><b>ЛР 6А</b>")]
+        worker["Обработчик событий<br/><i>контейнер: Python 3.13, тот же код, что api</i><br/>Уведомления подписчикам, напоминания<br/><b>ЛР 6А</b>"]
+    end
+
+    geo["Служба координат<br/><i>внешняя система</i>"]
+    max["MAX<br/><i>внешняя система</i>"]
+    ci["Конвейер GitHub Actions<br/><i>внешняя система</i>"]
+    probe["Внешняя проверка работоспособности<br/><i>внешняя система</i>"]
+
+    buyer -->|"HTTPS"| web
+    admin -->|"HTTPS"| web
+    seller -->|"HTTPS"| web
+    operator -->|"командная строка<br/>в контейнере api"| api
+    web -->|"вызывает<br/>JSON поверх HTTPS"| api
+    api -->|"читает и пишет<br/>SQL поверх TCP"| db
+    api -->|"запрашивает координаты адреса<br/>JSON поверх HTTPS"| geo
+    api -->|"публикует OfferPublished, BookingCreated,<br/>BookingCancelled, BookingIssued<br/>AMQP"| broker
+    broker -->|"доставляет OfferPublished, BookingCreated,<br/>BookingCancelled, BookingIssued<br/>AMQP"| worker
+    worker -->|"читает подписки и брони к напоминанию<br/>SQL поверх TCP"| db
+    worker -->|"отправляет сообщения<br/>Bot API поверх HTTPS"| max
+    max -->|"доставляет действия покупателя в боте<br/>JSON поверх HTTPS"| api
+    ci -->|"развёртывает<br/>образ контейнера"| api
+    probe -->|"опрашивает<br/>HTTP GET /health"| api
+
+    classDef actor fill:#E8EEF7,stroke:#4A7DB5,color:#16202E
+    classDef sys fill:#FBF0EC,stroke:#E2603A,color:#16202E
+    classDef store fill:#ECF6F4,stroke:#3E9E8F,color:#16202E
+    classDef ext fill:#F1F3F6,stroke:#5B6472,color:#16202E
+    class buyer,admin,seller,operator actor
+    class web,api,worker sys
+    class db,broker store
+    class geo,max,ci,probe ext

@@ -1,0 +1,111 @@
+%% Модель данных: вход для первой миграции в ЛР 4А.
+%% Сущности, помеченные v1.1, появляются вместе с требованиями FR-08, FR-09 (ЛР 6А).
+erDiagram
+    ACCOUNTS {
+        uuid id PK
+        text email UK "естественный ключ, нижний регистр"
+        text password_hash "Argon2id, ADR-0004"
+        text kind "buyer или staff"
+        timestamptz created_at
+        timestamptz disabled_at "пусто, пока запись активна"
+    }
+
+    REFRESH_TOKENS {
+        uuid id PK
+        uuid account_id FK
+        text token_hash UK "хеш обновляющего маркера"
+        timestamptz expires_at
+        timestamptz revoked_at "пусто, пока маркер действует"
+        timestamptz created_at
+    }
+
+    BAKERIES {
+        uuid id PK
+        text name
+        timestamptz created_at
+    }
+
+    PICKUP_POINTS {
+        uuid id PK
+        uuid bakery_id FK, UK "одна точка на пекарню, C-11"
+        text address
+        numeric latitude
+        numeric longitude
+        text time_zone "часовой пояс точки, Asia/Omsk"
+        timestamptz created_at
+    }
+
+    STAFF_MEMBERS {
+        uuid bakery_id PK, FK
+        uuid account_id PK, FK
+        text role "admin или seller"
+        timestamptz created_at
+    }
+
+    OFFERS {
+        uuid id PK
+        uuid bakery_id FK
+        uuid pickup_point_id FK
+        uuid published_by FK "сотрудник, опубликовавший"
+        text publish_key "ключ повтора, уникален вместе с published_by"
+        text title
+        text composition
+        int regular_price_kopecks
+        int discounted_price_kopecks
+        int bundle_count "от 1 до 50"
+        int remaining "от 0 до bundle_count"
+        numeric pickup_latitude "снимок координат точки"
+        numeric pickup_longitude
+        timestamptz window_starts_at
+        timestamptz window_ends_at
+        text status "active или withdrawn"
+        timestamptz created_at
+        timestamptz withdrawn_at "пусто, пока не снято"
+    }
+
+    BOOKINGS {
+        uuid id PK
+        uuid offer_id FK
+        uuid bakery_id FK "для уникальности кода в пекарне"
+        uuid buyer_id FK
+        text booking_key "ключ повтора, уникален вместе с buyer_id"
+        int bundle_count "от 1 до 3"
+        int price_kopecks "цена набора в момент брони"
+        text pickup_code "уникален среди created в пекарне"
+        text status "created, issued, cancelled_by_buyer, cancelled_by_bakery"
+        timestamptz created_at
+        timestamptz issued_at
+        uuid issued_by FK "сотрудник, выдавший набор"
+        timestamptz cancelled_at
+        uuid cancelled_by FK "кто отменил"
+        text cancel_reason "обязательна при cancelled_by_bakery"
+        timestamptz reminder_sent_at "v1.1, напоминание не дублируется"
+    }
+
+    MAX_LINKS {
+        uuid account_id PK, FK
+        text chat_id UK "чат покупателя с ботом, v1.1"
+        timestamptz created_at
+    }
+
+    SUBSCRIPTIONS {
+        uuid buyer_id PK, FK
+        uuid bakery_id PK, FK
+        timestamptz created_at "v1.1"
+    }
+
+    ACCOUNTS ||--o{ REFRESH_TOKENS : "входит с"
+    BAKERIES ||--|| PICKUP_POINTS : "выдаёт наборы в"
+    BAKERIES ||--|{ STAFF_MEMBERS : "имеет сотрудников"
+    ACCOUNTS ||--o{ STAFF_MEMBERS : "работает в"
+    BAKERIES ||--o{ OFFERS : "публикует"
+    PICKUP_POINTS ||--o{ OFFERS : "место выдачи"
+    ACCOUNTS ||--o{ OFFERS : "опубликовал"
+    OFFERS ||--o{ BOOKINGS : "резервируется"
+    BAKERIES ||--o{ BOOKINGS : "принимает"
+    ACCOUNTS ||--o{ BOOKINGS : "бронирует"
+    ACCOUNTS |o--o{ BOOKINGS : "выдал"
+    ACCOUNTS |o--o{ BOOKINGS : "отменил"
+    ACCOUNTS ||--o| MAX_LINKS : "подключил бот"
+    ACCOUNTS ||--o{ SUBSCRIPTIONS : "подписан"
+    BAKERIES ||--o{ SUBSCRIPTIONS : "имеет подписчиков"
