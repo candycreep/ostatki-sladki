@@ -9,6 +9,8 @@
 | Что | Где |
 | --- | --- |
 | Требования: домен, персоны, путь клиента, карта историй, бэклог, MVP | [docs/requirements.md](docs/requirements.md) |
+| Прослеживаемость: требование → решение → код → проверка | [docs/traceability.md](docs/traceability.md) |
+| Журнал изменений | [docs/CHANGELOG.md](docs/CHANGELOG.md) |
 | Процесс команды: Scrum, GitFlow, определения готовности и завершённости | [docs/process.md](docs/process.md) |
 | Персоны, CJM и USM | [Доска Miro](https://miro.com/app/board/uXjVEWLd15E=/) — [персоны](https://miro.com/app/board/uXjVEWLd15E=/?moveToWidget=3458764688207577192), CJM: [сосед](https://miro.com/app/board/uXjVEWLd15E=/?moveToWidget=3458764688207287295), [администратор](https://miro.com/app/board/uXjVEWLd15E=/?moveToWidget=3458764688207440714), [продавец](https://miro.com/app/board/uXjVEWLd15E=/?moveToWidget=3458764688207427519), [USM](https://miro.com/app/board/uXjVEWLd15E=/?moveToWidget=3458764688207207039) |
 | Бэклог, эпики, истории, спринты | [Jira: проект SCRUM](https://ostatki.atlassian.net/jira/software/projects/SCRUM/boards/1) |
