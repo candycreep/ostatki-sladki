@@ -39,3 +39,41 @@ jobs:
             echo "$found"
             exit 1
           fi
+
+  decisions:
+    name: Decision records are complete
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Required sections present
+        run: |
+          set -euo pipefail
+          failed=0
+          for file in docs/adr/[0-9]*.md; do
+            for section in "## Контекст" "## Движущие факторы" \
+                           "## Рассмотренные варианты" "## Решение" "## Последствия"; do
+              grep -q "^$section" "$file" || { echo "$file: нет раздела «$section»"; failed=1; }
+            done
+            grep -q "Отрицательные" "$file" \
+              || { echo "$file: нет отрицательных последствий"; failed=1; }
+            grep -q "Что пересмотрит решение" "$file" \
+              || { echo "$file: нет условия пересмотра"; failed=1; }
+            grep -q "^- \*\*Статус\*\*" "$file" \
+              || { echo "$file: нет статуса"; failed=1; }
+            grep -qE '`(FR|NFR|BR|C)-[0-9]+`' "$file" \
+              || { echo "$file: нет ссылок на требования"; failed=1; }
+            n=$(sed -n '/^## Рассмотренные варианты/,/^## /p' "$file" | grep -c '^|' || true)
+            [ "$n" -ge 4 ] || { echo "$file: вариантов меньше двух"; failed=1; }
+          done
+          exit $failed
+
+      - name: Every record is listed in the index
+        run: |
+          set -euo pipefail
+          failed=0
+          for file in docs/adr/[0-9]*.md; do
+            grep -q "$(basename "$file")" docs/adr/README.md \
+              || { echo "$(basename "$file") отсутствует в указателе"; failed=1; }
+          done
+          exit $failed
