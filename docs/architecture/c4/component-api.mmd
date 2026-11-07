@@ -1,0 +1,85 @@
+%% Соглашение об оформлении C4 — в docs/architecture/README.md
+%% Уровень компонентов: из чего состоит контейнер «Сервис API» (Python 3.13, FastAPI). Каталоги — из ADR-0003
+%% actor — действующее лицо; sys — соседний контейнер; comp — компонент; store — хранилище; ext — внешняя система
+%% Сплошная стрелка — вызов. Пунктирная «реализуется в» — порт и адаптер, который его реализует; зависимость в коде — от адаптера к порту.
+%% Стрелка направлена к адаптеру намеренно: со стрелкой к порту раскладчик ставит адаптеры в ряд со сценариями, и диаграмма вытягивается в ширину.
+%% У предметной области исходящих стрелок нет
+flowchart TB
+    operator["Оператор платформы<br/><i>человек: команда</i>"]
+    web["Браузерное приложение<br/><i>контейнер: Vue 3.5</i><br/><b>ЛР 8</b>"]
+    max["MAX<br/><i>внешняя система</i><br/><b>ЛР 6А</b>"]
+    probe["Внешняя проверка<br/>работоспособности<br/><i>внешняя система</i>"]
+
+    subgraph api["Сервис API"]
+        subgraph inbound["Входные адаптеры"]
+            http["Обработчики HTTP<br/><i>компонент: adapters/http, FastAPI</i><br/>операции /v1 и /health, коды ответов"]
+            authz["Проверка доступа<br/><i>компонент: adapters/http</i><br/>маркер, роль, пекарня — без базы"]
+            cli["Команды оператора<br/><i>компонент: adapters/cli</i><br/>заведение пекарни, FR-31"]
+        end
+
+        subgraph services["Сценарии"]
+            s_booking["Брони и выдача<br/><i>компонент: services</i><br/>бронь, отмена, выдача"]
+            s_offers["Предложения<br/><i>компонент: services</i><br/>публикация, поиск рядом"]
+            s_access["Доступ<br/><i>компонент: services</i><br/>регистрация, вход, маркеры"]
+            s_bakeries["Пекарни<br/><i>компонент: services</i><br/>пекарня, точка, сотрудники"]
+        end
+
+        subgraph domain["Предметная область"]
+            d_booking["Бронирование и выдача<br/><i>компонент: domain/booking</i><br/>Offer, Booking, инварианты"]
+            d_bakeries["Пекарни<br/><i>компонент: domain/bakeries</i><br/>Bakery"]
+        end
+
+        ports["Порты<br/><i>компонент: ports</i><br/>хранилища, единица работы, часы,<br/>координаты, события, маркеры"]
+
+        subgraph outbound["Выходные адаптеры"]
+            a_db["Хранилище<br/><i>компонент: adapters, SQLAlchemy</i><br/>единица работы, «не забрана»"]
+            a_geo["Клиент службы координат<br/><i>компонент: adapters, httpx</i><br/>адрес → координаты"]
+            a_events["Публикатор событий<br/><i>компонент: adapters, aio-pika</i><br/><b>ЛР 6А</b>"]
+            a_secrets["Пароли и маркеры<br/><i>компонент: adapters</i><br/>Argon2id, подпись маркеров"]
+        end
+    end
+
+    db[("База данных<br/><i>контейнер: PostgreSQL 17</i>")]
+    broker[("Брокер сообщений<br/><i>контейнер: RabbitMQ 4</i><br/><b>ЛР 6А</b>")]
+    geo["Служба координат<br/><i>внешняя система</i>"]
+
+    web -->|"JSON, HTTPS"| http
+    max -->|"действия в боте"| http
+    probe -->|"GET /health"| http
+    operator -->|"командная строка"| cli
+
+    http -->|"проверяет маркер"| authz
+    authz -->|"подпись через порт"| ports
+    http --> s_booking
+    http --> s_offers
+    http --> s_access
+    cli --> s_bakeries
+
+    s_booking --> d_booking
+    s_offers --> d_booking
+    s_bakeries --> d_bakeries
+
+    s_booking -->|"через порты"| ports
+    s_offers -->|"через порты"| ports
+    s_access -->|"через порты"| ports
+    s_bakeries -->|"через порты"| ports
+
+    ports -.->|"реализуется в"| a_db
+    ports -.->|"реализуется в"| a_geo
+    ports -.->|"реализуется в"| a_events
+    ports -.->|"реализуется в"| a_secrets
+
+    a_db -->|"SQL, TCP"| db
+    a_events -->|"AMQP"| broker
+    a_geo -->|"JSON, HTTPS"| geo
+
+    classDef actor fill:#E8EEF7,stroke:#4A7DB5,color:#16202E
+    classDef sys fill:#FBF0EC,stroke:#E2603A,color:#16202E
+    classDef comp fill:#FFF8E6,stroke:#C98A1B,color:#16202E
+    classDef store fill:#ECF6F4,stroke:#3E9E8F,color:#16202E
+    classDef ext fill:#F1F3F6,stroke:#5B6472,color:#16202E
+    class operator actor
+    class web sys
+    class http,authz,cli,s_booking,s_offers,s_access,s_bakeries,d_booking,d_bakeries,ports,a_db,a_geo,a_events,a_secrets comp
+    class db,broker store
+    class geo,max,probe ext
