@@ -14,6 +14,7 @@
 | --- | --- | --- |
 | Контекст | [`c4/context.mmd`](./c4/context.mmd) | С чем система граничит и кто ею пользуется |
 | Контейнеры | [`c4/container.mmd`](./c4/container.mmd) | Из каких частей состоит и на чём сделана |
+| Компоненты сервиса API | [`c4/component-api.mmd`](./c4/component-api.mmd) | Как устроен сервис API внутри и что от чего зависит |
 | Ключевой сценарий | [`sequence/create-booking.mmd`](./sequence/create-booking.mmd) | Что в каком порядке вызывается при брони, включая отказы |
 | Модель данных | [`data/model.mmd`](./data/model.mmd) | Как устроены данные |
 | Ресурсы API | [`../api/resources.md`](../api/resources.md) | Какие операции есть и что они отвечают |
